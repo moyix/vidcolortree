@@ -47,11 +47,15 @@ parser.add_argument('-d', '--output_dir', default=None, help='Output directory')
 parser.add_argument('-t', '--threshold', type=int, default=0, help='Ignore colors that are within this distance of black/white (Euclidean)')
 # Ignore colors that are more than a particular percentage of the total
 parser.add_argument('-p', '--percent', type=float, default=100.0, help='Ignore colors that are more than this percent of the video')
+
 args = parser.parse_args()
 ClusterAlg = {
     'kmeans': KMeans,
     'mbkmeans': MiniBatchKMeans
 }[args.method]
+
+if args.percent > 100.0 or args.percent < 0.0:
+    parser.error('Percentage must be between 0 and 100')
 
 vid_filename = Path(args.vid_filename)
 if not vid_filename.is_file():
@@ -129,11 +133,8 @@ if args.force or not hist_filename.exists():
 else:
     hist = np.load(str(hist_filename))['hist']
 
-# Filter out colors that are too dominant (more than a certain percentage of the video)
-print("Filtering out colors that are too dominant...", end='', flush=True)
-norm_hist = (hist / np.sum(hist))*100
-all_colors = np.argwhere(norm_hist <= args.percent).astype(np.uint8)
-print(f"{len(all_colors)} colors remain")
+# Initial list of colors in the video
+all_colors = np.argwhere(hist).astype(np.uint8)
 
 # Filter out colors that are too close to black or white
 if args.threshold:
@@ -156,6 +157,14 @@ palidx = kmeans.predict(all_colors)
 for color, idx in zip(all_colors, palidx):
     palhist[idx] += hist[color[0], color[1], color[2]]
 palhist /= palhist.sum()
+
+# Filter out colors that are too dominant (more than a certain percentage of the video after clustering)
+if args.percent < 100.0:
+    print("Filtering out colors that are too dominant...", end='', flush=True)
+    before = len(palhist[palhist > 0.0])
+    palhist[palhist*100.0 > args.percent] = 0.0
+    after = len(palhist[palhist > 0.0])
+    print(f"palette reduced from {before} to {after} colors")
 
 palette = palette.astype(np.float32) / 255
 # Use squarify to plot the histogram using the palette colors.
