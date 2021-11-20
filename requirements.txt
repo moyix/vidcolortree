@@ -1,0 +1,6 @@
+squarify
+python-opencv
+av
+numpy
+matplotlib
+sklearn
