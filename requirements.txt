@@ -1,5 +1,5 @@
 squarify
-python-opencv
+opencv-python
 av
 numpy
 matplotlib
