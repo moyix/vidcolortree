@@ -27,31 +27,34 @@ def get_frame_types(video_fn):
     frame_types = out.replace('pict_type=','').split()
     return zip(range(len(frame_types)), frame_types)
 
-# Argument parser with one required positional argument
 parser = argparse.ArgumentParser(description='Video Histogram')
 parser.add_argument('vid_filename', help='Video file to process')
+# Where to save output files
+parser.add_argument('-d', '--output_dir', default=None, help='Output directory')
 # Number of palette colors to use
 parser.add_argument('-c', '--colors', type=int, default=256, help='Number of colors to use')
 # Option to force regeneration of histogram
 parser.add_argument('-f', '--force', action='store_true', help='Force recomputation of the histogram')
-# Only look at I-frames
-parser.add_argument('-i', '--iframes', action='store_true', help='Only look at I-frames')
 # Which backend to use (opencv or pyav)
 parser.add_argument('-b', '--backend', choices=['opencv', 'pyav'], default='opencv',
     help='Which backend to use (PyAV or OpenCV)')
+# Only look at I-frames
+parser.add_argument('-i', '--iframes', action='store_true', help='Only look at I-frames')
 # Which clustering algorithm to use
 parser.add_argument('-m', '--method', choices=['kmeans', 'mbkmeans'], default='mbkmeans',
     help='Which clustering algorithm to use (K-Means or MiniBatchKMeans)')
-# Where to save output files
-parser.add_argument('-d', '--output_dir', default=None, help='Output directory')
+# Random seed for K-Means
+parser.add_argument('-s', '--seed', type=int, default=0, help='Random seed for K-Means')
 # Ignore colors that are too close to black or white
 parser.add_argument('-t', '--threshold', type=int, default=0, help='Ignore colors that are within this distance of black/white (Euclidean)')
 # Ignore colors that are more than a particular percentage of the total
 parser.add_argument('-p', '--percent', type=float, default=100.0, help='Ignore colors that are more than this percent of the video')
 # Verbose flag
-parser.add_argument('-V', '--verbose', action="store_const", dest="loglevel", const=logging.INFO)
+parser.add_argument('-V', '--verbose', action="store_const", dest="loglevel", const=logging.INFO, help='Enable info messages')
 # Debug flag
-parser.add_argument('-D', '--debug', action="store_const", dest="loglevel", const=logging.DEBUG)
+parser.add_argument('-D', '--debug', action="store_const", dest="loglevel", const=logging.DEBUG, help='Enable debug messages')
+
+
 args = parser.parse_args()
 ClusterAlg = {
     'kmeans': KMeans,
@@ -175,7 +178,7 @@ if args.threshold:
 
 # Use K-Means to cluster the colors
 logging.info(f"Clustering to select {args.colors} dominant colors...")
-kmeans = ClusterAlg(n_clusters=args.colors, random_state=0,
+kmeans = ClusterAlg(n_clusters=args.colors, random_state=args.seed,
     verbose=1 if args.loglevel == logging.DEBUG else 0)
 kmeans.fit(all_colors, sample_weight=hist[all_colors[:,0],all_colors[:,1],all_colors[:,2]])
 palette = np.rint(kmeans.cluster_centers_).astype(np.uint8)
