@@ -54,7 +54,6 @@ parser.add_argument('-V', '--verbose', action="store_const", dest="loglevel", co
 # Debug flag
 parser.add_argument('-D', '--debug', action="store_const", dest="loglevel", const=logging.DEBUG, help='Enable debug messages')
 
-
 args = parser.parse_args()
 ClusterAlg = {
     'kmeans': KMeans,
@@ -175,6 +174,10 @@ if args.threshold:
     logging.info("Filtering out colors that are too close to white...")
     all_colors = all_colors[np.sqrt(np.sum(np.square(np.abs(all_colors - [255,255,255])), axis=1)) > args.threshold]
     logging.info(f"{len(all_colors)} colors remain")
+
+if len(all_colors) < args.colors:
+    logging.warning(f"{len(all_colors)} colors found, but {args.colors} requested. Using {len(all_colors)} instead.")
+    args.colors = len(all_colors)
 
 # Use K-Means to cluster the colors
 logging.info(f"Clustering to select {args.colors} dominant colors...")
