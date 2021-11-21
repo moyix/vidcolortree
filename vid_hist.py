@@ -90,7 +90,7 @@ BATCH_SIZE = 1000
 
 def get_hist_opencv(filename, iframes=False):
     def val2chars(i):
-        return bytes.fromhex(hex(int(i))[2:])[::-1].decode()
+        return bytes.fromhex(f"{int(i):08x}")[::-1].decode()
     cap = cv2.VideoCapture(filename)
     pix_fmt = val2chars(cap.get(cv2.CAP_PROP_CODEC_PIXEL_FORMAT))
     fourcc = val2chars(cap.get(cv2.CAP_PROP_FOURCC))
